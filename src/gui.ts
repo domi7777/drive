@@ -7,15 +7,11 @@ import {
   fetchLeaderboard,
   showLeaderboardOverlay,
   showNameEntryOverlay,
-  clearOverlay,
 } from './utils/leaderboard';
 
 let gameOver = false;
 let currentUserUid: string | null = null;
 let currentUserName: string | null = null;
-let bestScore = 0;
-let deathCount = 0;
-
 export const updateGui = (elapsedSeconds: number, bonusCount: number) => {
   const score = bonusCount * Constants.SCORE_MULTIPLIER;
   // update timer display and check for end of game
@@ -38,7 +34,6 @@ export const updateGui = (elapsedSeconds: number, bonusCount: number) => {
 const timerEl = document.querySelector('.game-timer') as HTMLDivElement | null;
 const overlay = document.querySelector('.game-overlay') as HTMLDivElement | null;
 const restartBtn = document.querySelector('.game-restart-btn') as HTMLButtonElement | null;
-const overlayBonusEl = document.querySelector('.game-over-bonus') as HTMLSpanElement | null;
 
 if (restartBtn)
   restartBtn.addEventListener('click', () => {
@@ -66,11 +61,11 @@ async function loadUserBestScore() {
 
     if (userRecord) {
       currentUserName = userRecord.name;
-      bestScore = userRecord.score;
-      deathCount = userRecord.deaths || 0;
+      // bestScore = userRecord.score;
+      // deathCount = userRecord.deaths || 0;
     } else {
-      bestScore = 0;
-      deathCount = 0;
+      // bestScore = 0;
+      // deathCount = 0;
     }
   } catch (error) {
     console.error('Failed to load user best score:', error);
