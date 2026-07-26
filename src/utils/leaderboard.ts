@@ -41,6 +41,9 @@ const db = getFirestore(app);
 const docPath = 'drive-scores';
 
 let firebaseUid: string | null = null;
+let currentUserUid: string | null = null;
+let currentUserName: string | null = null;
+let bestScore: number = 0;
 
 export const authReady = signInAnonymously(auth)
   .then((userCredential) => {
@@ -175,7 +178,7 @@ export function showLeaderboardOverlay(scores: Array<LeaderboardEntry>, onRetry:
                 <span class="leaderboard-rank">${index + 1}.</span>
                 <span class="leaderboard-name">${escapeHtml(entry.name ?? '')}</span>
                 <span class="leaderboard-score">Score: ${entry.score}</span>
-                <span class="leaderboard-deaths">Deaths: ${entry.deaths ?? 0}</span>
+                <span class="leaderboard-deaths">Drives: ${entry.deaths ?? 0}</span>
               </div>`
           )
           .join('')}
@@ -219,5 +222,47 @@ export function showNameEntryOverlay(
       return;
     }
     await onSubmit(name);
+  });
+}
+
+export async function loadUserBestScore() {
+  try {
+    currentUserUid = await getLeaderboardUid();
+    const userRecord = await fetchUserRecord(currentUserUid);
+
+    if (userRecord) {
+      currentUserName = userRecord.name;
+      bestScore = userRecord.score;
+      // deathCount = userRecord.deaths || 0;
+    } else {
+      // not in db yet
+      currentUserName = null;
+      bestScore = 0;
+      // deathCount = 0;
+    }
+  } catch (error) {
+    console.error('Failed to load user best score:', error);
+  }
+  return bestScore;
+}
+
+export async function handleLeaderboardFlow(score: number, onComplete: () => void) {
+  if (!currentUserUid) {
+    console.error('Current user UID is not set. Cannot handle leaderboard flow.');
+    return;
+  }
+  const saveScoreAndShowLeaderboard = async (uuid: string, name: string) => {
+    await savePlayerScore(uuid, name, score);
+    const scores = await fetchLeaderboard();
+    showLeaderboardOverlay(scores, onComplete);
+  };
+
+  if (currentUserName) {
+    await saveScoreAndShowLeaderboard(currentUserUid, currentUserName);
+    return;
+  }
+
+  showNameEntryOverlay(score, async (name) => {
+    await saveScoreAndShowLeaderboard(currentUserUid!, name);
   });
 }

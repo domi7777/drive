@@ -44,7 +44,6 @@ main {
 /* Game UI */
 .game-timer {
   position: fixed;
-  top: 12px;
   right: 12px;
   padding: 8px 12px;
   background: rgba(0,0,0,0.6);

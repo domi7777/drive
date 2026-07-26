@@ -1,17 +1,9 @@
 import { Constants } from './constants';
 import { getRenderer } from './renderer';
-import {
-  getLeaderboardUid,
-  fetchUserRecord,
-  savePlayerScore,
-  fetchLeaderboard,
-  showLeaderboardOverlay,
-  showNameEntryOverlay,
-} from './utils/leaderboard';
+import { formatTime } from './utils/time';
+import { handleLeaderboardFlow, loadUserBestScore } from './utils/leaderboard';
 
 let gameOver = false;
-let currentUserUid: string | null = null;
-let currentUserName: string | null = null;
 export const updateGui = (elapsedSeconds: number, bonusCount: number) => {
   const score = bonusCount * Constants.SCORE_MULTIPLIER;
   // update timer display and check for end of game
@@ -42,35 +34,9 @@ if (restartBtn)
 if (overlay) overlay.style.visibility = 'hidden';
 
 // Load user's best score from leaderboard when the game starts
-loadUserBestScore();
-
-function formatTime(seconds: number) {
-  const s = Math.max(0, Math.floor(seconds));
-  const mm = Math.floor(s / 60)
-    .toString()
-    .padStart(2, '0');
-  const ss = (s % 60).toString().padStart(2, '0');
-  return `${mm}:${ss}`;
-}
-
-async function loadUserBestScore() {
-  try {
-    const uid = await getLeaderboardUid();
-    currentUserUid = uid;
-    const userRecord = await fetchUserRecord(uid);
-
-    if (userRecord) {
-      currentUserName = userRecord.name;
-      // bestScore = userRecord.score;
-      // deathCount = userRecord.deaths || 0;
-    } else {
-      // bestScore = 0;
-      // deathCount = 0;
-    }
-  } catch (error) {
-    console.error('Failed to load user best score:', error);
-  }
-}
+loadUserBestScore().then((score) => {
+  document.querySelector('.game-best-score')!.textContent = String(score);
+});
 
 function endGame(score: number) {
   if (gameOver) {
@@ -79,26 +45,7 @@ function endGame(score: number) {
   gameOver = true;
   // stop the render loop
   getRenderer().setAnimationLoop(null);
-  createLeaderboardUI(score);
-}
-
-async function createLeaderboardUI(score: number) {
-  const saveScore = async (playerName: string) => {
-    if (!currentUserUid) return;
-    await savePlayerScore(currentUserUid, playerName, score);
-    const scores = await fetchLeaderboard();
-    showLeaderboardOverlay(scores, () => {
-      location.reload();
-    });
-  };
-
-  if (currentUserName) {
-    saveScore(currentUserName);
-    return;
-  }
-
-  showNameEntryOverlay(score, async (name) => {
-    currentUserName = name;
-    await saveScore(name);
+  handleLeaderboardFlow(score, () => {
+    location.reload();
   });
 }
